@@ -1,48 +1,36 @@
 (ns mzlsvnbak.app
-  (:require [clojure.tools.cli :refer [parse-opts]]))
+  (:require [babashka.cli :as cli]))
 
 
-(def cli-options
-  ;; An option with a required argument
-  [["-v" nil "Verbosity level"
-    :id :verbosity
-    :default 0
-    :update-fn inc]
-   ;; A boolean option defaulting to nil
-   ["-h" "--help"]])
+(defn add [m]
+  (let [args (:args m)]
+    (dorun (map (fn [value] (println "Arg:" value)) args)))
+  (println "Add:" (assoc m :fn :add)))
 
+(defn rename [m]
+  (println "Rename:" (assoc m :fn :rename)))
 
-(defn show-help
-  ([cmd] (if (some? cmd)
-           (println "This is help for:" cmd)
-           (println "Got nil")))
-  ([] (println "This is help")))
+(defn delete [m]
+  (println "Delete:" (assoc m :fn :delete)))
 
+(defn backup [m]
+  (println "Backup:" (assoc m :fn :backup)))
 
-(defn cli-commmand [args]
-  (let [cmd (first args)]
-    (println "first=" cmd)
-    (cond
-      (= "add" cmd) (println "What to do:" cmd)
-      (#{"cm" "commit"} cmd) (println "What to do:" cmd)
-      (#{"mv" "move" "rename"} cmd) (println "What to do:" cmd)
-      (#{"rm" "remove" "delete"} cmd) (println "What to do:" cmd)
-      (= "backup" cmd) (println "What to do:" cmd)
-      (= "help" cmd) (show-help (second args))
-      :else (show-help))))
+(defn help [m]
+  (println "Help:" (assoc m :fn :help)))
 
+(def table
+  [{:cmds ["add"]    :fn add}
+   {:cmds ["rename"] :fn rename :args->opts [:from :to]}
+   {:cmds ["move"]   :fn rename :args->opts [:from :to]}
+   {:cmds ["mv"]     :fn rename :args->opts [:from :to]}
+   {:cmds ["delete"] :fn delete}
+   {:cmds ["remove"] :fn delete}
+   {:cmds ["rm"]     :fn delete}
+   {:cmds ["backup"] :fn backup}
+   {:cmds []         :fn help    :args->opts [:cmd :help-to]}])
 
 
 (defn -main [& args]
-  (println "Hello")
-  (cli-commmand args)
-  (comment
-    (let [{:keys [options arguments errors]} (parse-opts args cli-options)]
-      (println "options" options)
-      (println "arguments" arguments)
-      (println "errors" errors))))
-
-(comment
-  (-main "help")
-  ;; (show-help)
-  )
+  (println "mzlsvnbak")
+  (cli/dispatch table args {:coerce {:depth :long}}))
